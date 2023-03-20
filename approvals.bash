@@ -1,16 +1,17 @@
-# approvals.bash v0.3.3
+# approvals.bash v0.4.0
 #
 # Interactive approval testing for Bash.
 # https://github.com/DannyBen/approvals.bash
 approve() {
   local expected approval approval_file actual cmd
   approvals_dir=${APPROVALS_DIR:=approvals}
+  approvals_prefix=${APPROVALS_PREFIX:=}
 
   cmd=$1
   last_exit_code=0
   actual=$(eval "$cmd" 2>&1) || last_exit_code=$?
   approval=$(printf "%b" "$cmd" | tr -s -c "[:alnum:]" _)
-  approval_file="$approvals_dir/${2:-"$approval"}"
+  approval_file="$approvals_dir/${approvals_prefix}${2:-"$approval"}"
 
   [[ -d "$approvals_dir" ]] || mkdir "$approvals_dir"
 
@@ -41,8 +42,9 @@ describe() {
 }
 
 context() {
+  APPROVALS_PREFIX="${2:-$APPROVALS_PREFIX}"
   echo
-  magenta "= $*"
+  magenta "= $1"
 }
 
 fail() {

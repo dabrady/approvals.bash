@@ -16,6 +16,16 @@ context "standard operation"
 
 context "when APPROVALS_DIR is set"
   APPROVALS_DIR=alt-approvals
-  
+
   describe "writes approvals to a different directory"
     approve "./sample-cli-app.sh"
+
+context "when APPROVALS_PREFIX is set"
+  APPROVALS_PREFIX="_prefix"
+
+  describe "writes approval files with the given prefix"
+    approve "./sample-cli-app.sh"
+
+  context "and a context prefix is provided" "_context_prefix"
+    describe "it overrides the global prefix"
+      approve "./sample-cli-app.sh"
