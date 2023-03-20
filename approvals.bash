@@ -1,4 +1,4 @@
-# approvals.bash v0.4.0
+# approvals.bash v0.5.0
 #
 # Interactive approval testing for Bash.
 # https://github.com/DannyBen/approvals.bash
@@ -38,13 +38,45 @@ approve() {
 
 describe() {
   echo
-  blue "= $*"
+  indent "$(blue "= $*")"
 }
 
+# Use at the end of a `describe` "block" (i.e. sequence of `approve` calls after a `describe` call)
+# to pretend it's actually a block.
+ebircsed() { :; }
+
+# A function stub, to be redefined by tests.
+setup_test_context() { :; }
+
 context() {
-  APPROVALS_PREFIX="${2:-$APPROVALS_PREFIX}"
+  APPROVALS_PREFIX="${2:-$__APPROVALS_PREFIX}"
+
+  # Initialize our context prefix stack, if necessary.
+  declare -g -a __APPROVALS_PREFIX_STACK=${__APPROVALS_PREFIX_STACK-()}
+  # Push the new context prefix onto the stack (if none specified, push a copy of the the old one).
+  __APPROVALS_PREFIX_STACK=( "${APPROVALS_PREFIX:-}" "${__APPROVALS_PREFIX_STACK[@]}" )
+
+  # Our 'context' nesting level is one less than the size of our stack, down to a minimum of 0.
+  declare -g -i __APPROVALS_CONTEXT_LEVEL=$(( ${#__APPROVALS_PREFIX_STACK[@]} > 0 ? ${#__APPROVALS_PREFIX_STACK[@]} - 1 : 0 ))
+
+
   echo
-  magenta "= $1"
+  indent "$(magenta "= $1")"
+}
+
+# Use at the end of a `context` "block" (i.e. sequence of `approve` calls after a `context` call)
+# to reset the test environment.
+txetnoc() {
+  # Pop back up the stack of context prefixes.
+  __APPROVALS_PREFIX_STACK=( "${__APPROVALS_PREFIX_STACK[@]:1}" )
+
+  # Our 'context' nesting level is one less than the size of our stack, down to a minimum of 0.
+  __APPROVALS_CONTEXT_LEVEL=$(( ${#__APPROVALS_PREFIX_STACK[@]} > 0 ? ${#__APPROVALS_PREFIX_STACK[@]} - 1 : 0 ))
+
+  APPROVALS_PREFIX="${__APPROVALS_PREFIX_STACK[0]}"
+
+  # Reset our test environment (which might also assign an initial `APPROVALS_PREFIX`)
+  setup_test_context
 }
 
 fail() {
@@ -53,7 +85,7 @@ fail() {
 }
 
 pass() {
-  green "  approved: $*"
+  indent "$(green "approved: $*")"
   return 0
 }
 
@@ -70,6 +102,8 @@ green() { printf "\e[32m%b\e[0m\n" "$*"; }
 blue() { printf "\e[34m%b\e[0m\n" "$*"; }
 magenta() { printf "\e[35m%b\e[0m\n" "$*"; }
 cyan() { printf "\e[36m%b\e[0m\n" "$*"; }
+
+indent() { printf "%$(( ${__APPROVALS_CONTEXT_LEVEL:=0} * 2 ))s$*\n"; }
 
 # Private
 
